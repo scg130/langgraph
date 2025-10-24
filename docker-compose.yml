@@ -29,10 +29,13 @@ services:
     image: neo4j:5.19
     container_name: langgraph_neo4j
     environment:
-      - NEO4J_AUTH=neo4j/12345678
+      NEO4J_AUTH: "neo4j/12345678"
+      NEO4JLABS_PLUGINS: '["apoc"]'
+      NEO4J_dbms_security_procedures_unrestricted: "apoc.*"
     ports:
       - "7474:7474"
       - "7687:7687"
     volumes:
       - ./neo4j_data:/data
     restart: always
+
