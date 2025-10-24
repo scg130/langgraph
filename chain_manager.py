@@ -2,6 +2,7 @@ import os
 import asyncio
 import torch
 import redis
+from typing import Dict, List
 from googlesearch import search
 from graph_manager import Neo4jManager
 from langchain_community.vectorstores import Chroma
@@ -100,9 +101,12 @@ async def async_graph_query(query):
     return {"type": "graph", "result": res}
 
 # ========== 网络搜索 ==========
-def web_search(query, num_results=3):
+def web_search(question: str, max_results: int = 3) -> List[Dict[str, str]]:
     try:
-        return [url for url in search(query, num_results=num_results)]
+        results = []
+        for url in search(question, num_results=max_results, advanced=True):
+            results.append({"title": url.title,  "body": url.description})
+        return results
     except Exception as e:
         return [f"网络搜索出错：{str(e)}"]
 
