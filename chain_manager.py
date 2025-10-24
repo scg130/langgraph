@@ -96,7 +96,7 @@ graph_chain = GraphQAChain.from_llm(llm=llm, graph=graph, verbose=False)
 # 异步包装图谱查询
 async def async_graph_query(query):
     loop = asyncio.get_event_loop()
-    res = await loop.run_in_executor(None, graph_chain.run, query)
+    res = await loop.run_in_executor(None, graph_chain.invoke, query)
     return {"type": "graph", "result": res}
 
 # ========== 网络搜索 ==========
