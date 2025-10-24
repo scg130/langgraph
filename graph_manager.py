@@ -1,17 +1,8 @@
 from neo4j import GraphDatabase
-import os
-from dotenv import load_dotenv
-load_dotenv()
-
-
-NEO4J_URL = os.getenv("NEO4J_URL")
-NEO4J_USER = os.getenv("NEO4J_USER")
-NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD")
-
 
 class Neo4jManager:
-    def __init__(self):
-        self.driver = GraphDatabase.driver(NEO4J_URL, auth=(NEO4J_USER, NEO4J_PASSWORD))
+    def __init__(self, url: str, user: str, password: str):
+        self.driver = GraphDatabase.driver(url, auth=(user, password))
 
 
     def close(self):
@@ -33,5 +24,8 @@ class Neo4jManager:
             res = session.run(cypher, params or {})
             return [r.data() for r in res]
 
+    def __enter__(self):
+        return self
 
-neo4j_mgr = Neo4jManager()
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()    

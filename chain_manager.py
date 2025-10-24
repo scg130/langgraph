@@ -3,10 +3,9 @@ import asyncio
 import torch
 import redis
 from googlesearch import search
-
+from graph_manager import Neo4jManager
 from langchain_community.vectorstores import Chroma
 from langchain_community.embeddings import HuggingFaceEmbeddings
-from langchain_neo4j import Neo4jGraph
 from langchain_community.llms import HuggingFacePipeline
 from langchain.chains import RetrievalQA
 from langchain_community.chains.graph_qa.base import GraphQAChain
@@ -32,14 +31,15 @@ print(f"[INFO] 使用模型: {llm_model}")
 
 
 # 初始化 LLM
-tokenizer = AutoTokenizer.from_pretrained(llm_model, trust_remote_code=True, use_auth_token=os.getenv("HUGGINGFACE_TOKEN"))
-model = AutoModelForCausalLM.from_pretrained(llm_model, trust_remote_code=True, use_auth_token=os.getenv("HUGGINGFACE_TOKEN"))
+tokenizer = AutoTokenizer.from_pretrained(llm_model, trust_remote_code=True, token=os.getenv("HUGGINGFACE_TOKEN"))
+model = AutoModelForCausalLM.from_pretrained(llm_model, trust_remote_code=True, token=os.getenv("HUGGINGFACE_TOKEN"))
 pipe = pipeline(
     "text-generation",
     model=model,
     tokenizer=tokenizer,
     max_length=512,
-    temperature=0,
+    truncation=True,   # ⚡ 添加这一行
+    temperature=0.7,
     device=0 if device == "cuda" else -1
 )
 llm = HuggingFacePipeline(pipeline=pipe)
@@ -47,7 +47,7 @@ llm = HuggingFacePipeline(pipeline=pipe)
 # 异步封装 LLM predict
 async def async_llm_predict(prompt: str):
     loop = asyncio.get_event_loop()
-    return await loop.run_in_executor(None, llm.predict, prompt)
+    return await loop.run_in_executor(None, llm.invoke, prompt)
 
 # ========== 向量数据库初始化 ==========
 def get_chroma_store():
@@ -68,7 +68,7 @@ vector_chain = RetrievalQA.from_chain_type(
 # 异步包装向量检索
 async def async_vector_query(query):
     loop = asyncio.get_event_loop()
-    res = await loop.run_in_executor(None, vector_chain.run, query)
+    res = await loop.run_in_executor(None, vector_chain.invoke, query)
     return {"type": "vector", "result": res}
 
 # ========== 图谱查询 ==========
@@ -76,15 +76,13 @@ NEO4J_URL = os.getenv("NEO4J_URL", "bolt://localhost:7687")
 NEO4J_USER = os.getenv("NEO4J_USER", "neo4j")
 NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "password")
 
-neo4j_mgr = Neo4jGraph(url=NEO4J_URL, username=NEO4J_USER, password=NEO4J_PASSWORD)
-
-
 # 创建 Networkx 图
 graph = NetworkxEntityGraph()
 
+neo4j_mgr = Neo4jManager(url=NEO4J_URL, user=NEO4J_USER, password=NEO4J_PASSWORD)
 # 手动从 Neo4j 拉取节点和关系
-nodes = neo4j_mgr.query("MATCH (n) RETURN n LIMIT 100")  # 自定义查询
-edges = neo4j_mgr.query("MATCH (n)-[r]->(m) RETURN n,r,m LIMIT 100")
+nodes = neo4j_mgr.run_query("MATCH (n) RETURN n LIMIT 100")  # 自定义查询
+edges = neo4j_mgr.run_query("MATCH (n)-[r]->(m) RETURN n,r,m LIMIT 100")
 
 # 把数据加入 graph
 for n in nodes:
@@ -162,7 +160,7 @@ async def hybrid_query(query: str, use_web: bool = True, force_refresh: bool = F
     answer = final_answer.strip()
 
     # 缓存答案
-    redis_client.set(cache_key, answer, ex=60 * 60 * 6)
+    redis_client.set(cache_key, answer, ex= 6)
     return {
         "source": label,
         "answer": answer,

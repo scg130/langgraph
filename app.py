@@ -11,7 +11,7 @@ app = FastAPI(title="LangGraph Hybrid QA Service", version="1.0")
 @app.post("/graph_qa")
 async def graph_qa(query: str = Form(...), use_web: bool = True):
     """混合问答接口：自动判断使用图谱 / 向量 / 联网"""
-    result = await hybrid_query(query, use_web=use_web)
+    result = await hybrid_query(query, use_web=use_web, force_refresh=True)
     return result
 
 @app.post("/ingest")

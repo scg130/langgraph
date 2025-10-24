@@ -18,3 +18,4 @@ langchain-chroma==0.2.4
 python-dotenv
 langchain-neo4j
 uvicorn
+numpy
