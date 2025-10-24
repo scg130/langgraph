@@ -11,6 +11,7 @@ from langchain_community.llms import HuggingFacePipeline
 from langchain.chains import RetrievalQA
 from langchain_community.chains.graph_qa.base import GraphQAChain
 from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
+from langchain_community.graphs.networkx_graph import NetworkxEntityGraph
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -75,10 +76,24 @@ NEO4J_URL = os.getenv("NEO4J_URL", "bolt://localhost:7687")
 NEO4J_USER = os.getenv("NEO4J_USER", "neo4j")
 NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "password")
 
-print(f"[INFO] Neo4j 连接配置: {NEO4J_URL}, {NEO4J_USER}, {NEO4J_PASSWORD}")
-
 neo4j_mgr = Neo4jGraph(url=NEO4J_URL, username=NEO4J_USER, password=NEO4J_PASSWORD)
-graph_chain = GraphQAChain.from_llm(llm=llm, graph=neo4j_mgr, verbose=False)
+
+
+# 创建 Networkx 图
+graph = NetworkxEntityGraph()
+
+# 手动从 Neo4j 拉取节点和关系
+nodes = neo4j_mgr.query("MATCH (n) RETURN n LIMIT 100")  # 自定义查询
+edges = neo4j_mgr.query("MATCH (n)-[r]->(m) RETURN n,r,m LIMIT 100")
+
+# 把数据加入 graph
+for n in nodes:
+    graph.add_node(n['n'].id, **dict(n['n']))
+
+for e in edges:
+    graph.add_edge(e['n'].id, e['m'].id, **dict(e['r']))
+
+graph_chain = GraphQAChain.from_llm(llm=llm, graph=graph, verbose=False)
 
 # 异步包装图谱查询
 async def async_graph_query(query):

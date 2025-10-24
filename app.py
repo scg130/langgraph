@@ -3,6 +3,9 @@ from chain_manager import hybrid_query
 from ingest import ingest_file
 from langgraph_flow import FlowBuilder
 
+import os
+
+os.makedirs("./uploads", exist_ok=True)
 app = FastAPI(title="LangGraph Hybrid QA Service", version="1.0")
 
 @app.post("/graph_qa")
@@ -44,3 +47,8 @@ def flow_dot():
 @app.get("/")
 def index():
     return {"message": "LangGraph Hybrid QA Service 已启动 🚀"}
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)

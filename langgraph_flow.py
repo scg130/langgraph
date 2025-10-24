@@ -2,7 +2,7 @@ import networkx as nx
 from graphviz import Digraph
 
 class FlowBuilder: 
-    def init(self): 
+    def __init__(self):
         self.G = nx.DiGraph()
 
     def add_node(self, node_id: str, label: str):
