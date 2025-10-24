@@ -29,7 +29,7 @@ services:
     image: neo4j:5.19
     container_name: langgraph_neo4j
     environment:
-      - NEO4J_AUTH=neo4j/123456
+      - NEO4J_AUTH=neo4j/12345678
     ports:
       - "7474:7474"
       - "7687:7687"

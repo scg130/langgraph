@@ -11,6 +11,10 @@ from langchain_community.llms import HuggingFacePipeline
 from langchain.chains import RetrievalQA
 from langchain_community.chains.graph_qa.base import GraphQAChain
 from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
+from dotenv import load_dotenv
+
+load_dotenv()
+
 
 # ========== 基础配置 ==========
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
@@ -70,6 +74,8 @@ async def async_vector_query(query):
 NEO4J_URL = os.getenv("NEO4J_URL", "bolt://localhost:7687")
 NEO4J_USER = os.getenv("NEO4J_USER", "neo4j")
 NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "password")
+
+print(f"[INFO] Neo4j 连接配置: {NEO4J_URL}, {NEO4J_USER}, {NEO4J_PASSWORD}")
 
 neo4j_mgr = Neo4jGraph(url=NEO4J_URL, username=NEO4J_USER, password=NEO4J_PASSWORD)
 graph_chain = GraphQAChain.from_llm(llm=llm, graph=neo4j_mgr, verbose=False)
