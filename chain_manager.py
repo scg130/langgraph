@@ -4,7 +4,7 @@ import torch
 import redis
 from googlesearch import search
 
-from langchain.vectorstores import Chroma
+from langchain_community.vectorstores import Chroma
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.graphs import Neo4jGraph
 from langchain_community.llms import HuggingFacePipeline
