@@ -18,4 +18,6 @@ langchain-chroma==0.2.4
 python-dotenv
 langchain-neo4j
 uvicorn
-numpy
+numpy==1.26.4
+fastapi
+python-multipart
