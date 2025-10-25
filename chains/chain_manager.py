@@ -141,33 +141,90 @@ async def hybrid_query(query: str, use_web: bool = True, force_refresh: bool = F
 
     results = await asyncio.gather(*tasks)
 
-    # 构建提示词
-    prompt = f"用户问题: {query}\n"
-    prompt += "=== 向量检索结果 ===\n"
+    # 构建更明确的提示词
+    prompt = f"""你是一个专业的问答助手，需要根据提供的信息回答用户问题。
+用户问题: {query}
+
+信息来源：
+"""
+
+    # 向量检索结果
+    vector_result = ""
     for r in results:
-        if r["type"] == "vector":
-            prompt += f"{r['result']['result']}\n"
+        if r["type"] == "vector" and r['result'].get('result'):
+            vector_result = r['result']['result']
             break
 
-    prompt += "=== 知识图谱结果 ===\n"
+    if vector_result:
+        prompt += f"\n=== 向量检索结果 ===\n{vector_result}\n"
+
+    # 知识图谱结果
+    graph_result = ""
     for r in results:
-        if r["type"] == "graph":
-            prompt += f"{r['result']['result']}\n"
+        if r["type"] == "graph" and r['result'].get('result'):
+            graph_result = r['result']['result']
             break
 
+    if graph_result:
+        prompt += f"=== 知识图谱结果 ===\n{graph_result}\n"
+
+    # 网络搜索结果
     if use_web:
-        prompt += "=== 网络搜索结果 ===\n"
+        web_result = ""
         for r in results:
-            if r["type"] == "web":
-                prompt += "\n".join(r['result'])[:500] + "\n"
+            if r["type"] == "web" and r['result']:
+                web_result = "\n".join(r['result'])[:500]
                 break
 
-    prompt += "\n请根据以上信息，综合回答用户问题，要求：准确、简洁、全面。"
+        if web_result:
+            prompt += f"=== 网络搜索结果 ===\n{web_result}\n"
+
+    # 添加更明确的任务指示
+    prompt += """
+请根据以上信息，综合回答用户问题。要求：
+1. 准确性：确保答案基于提供的信息，不要凭空猜测
+2. 简洁性：用简洁明了的语言回答，避免冗长
+3. 全面性：涵盖问题的关键点，不要遗漏重要信息
+4. 格式要求：直接给出答案，不要添加"根据提供的信息"等额外说明
+5. 如果没有足够信息回答，请明确说明"没有找到相关信息"""
 
     # LLM 生成答案
     final_answer = await async_llm_predict(prompt)
 
-    # 缓存结果
-    redis_client.setex(cache_key, 3600, final_answer)
+    # 添加答案后处理，过滤无用内容
+    final_answer = process_llm_answer(final_answer)
+
+    # 延长缓存时间到1小时
+    redis_client.setex(cache_key, 6, final_answer)
 
     return {"result": final_answer, "source": "llm"}
+
+# 添加答案后处理函数
+
+
+def process_llm_answer(answer):
+    """处理LLM生成的答案，过滤无用内容"""
+    # 移除可能的前缀
+    if isinstance(answer, str):
+        # 去除多余的换行符和空格
+        answer = answer.strip()
+
+        # 移除常见的无用前缀
+        prefixes = [
+            "根据提供的信息",
+            "基于提供的内容",
+            "根据上述资料",
+            "综合以上信息"
+        ]
+
+        for prefix in prefixes:
+            if answer.startswith(prefix):
+                answer = answer[len(prefix):].lstrip("，。:：")
+                break
+
+        # 截断过长的答案（如果需要）
+        max_length = 1000
+        if len(answer) > max_length:
+            answer = answer[:max_length] + "..."
+
+    return answer

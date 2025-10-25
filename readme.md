@@ -5,7 +5,7 @@ docker-compose up --build -d
 docker logs -f langgraph_app
 
 # 本地测试接口
-curl -X POST -F 'query=中国和美国的贸易关系1' http://localhost:8000/graph_qa
+curl -X POST -F 'query=中国和美国的贸易关系如何？' http://localhost:8000/graph_qa
 
 # 上传文件导入知识库
 curl -X POST -F "file=@docs/测试文档.pdf" http://localhost:8000/ingest
