@@ -1,18 +1,21 @@
-from fastapi import FastAPI, UploadFile, Form
-from chain_manager import hybrid_query
-from ingest import ingest_file
-from langgraph_flow import FlowBuilder
-
 import os
+
+from fastapi import FastAPI, Form, UploadFile
+
+from chains.chain_manager import hybrid_query
+from graphs.langgraph_flow import FlowBuilder
+from vectorstore.ingest import ingest_file
 
 os.makedirs("./uploads", exist_ok=True)
 app = FastAPI(title="LangGraph Hybrid QA Service", version="1.0")
+
 
 @app.post("/graph_qa")
 async def graph_qa(query: str = Form(...), use_web: bool = True):
     """混合问答接口：自动判断使用图谱 / 向量 / 联网"""
     result = await hybrid_query(query, use_web=use_web, force_refresh=True)
     return result
+
 
 @app.post("/ingest")
 async def ingest_doc(file: UploadFile):
@@ -22,6 +25,7 @@ async def ingest_doc(file: UploadFile):
         f.write(await file.read())
     count = ingest_file(path)
     return {"status": "ok", "chunks": count, "filename": file.filename}
+
 
 @app.get("/flow_dot")
 def flow_dot():
@@ -43,6 +47,7 @@ def flow_dot():
     fb.add_edge("merge", "end")
 
     return {"dot": fb.to_dot()}
+
 
 @app.get("/")
 def index():

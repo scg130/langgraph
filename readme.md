@@ -13,6 +13,8 @@ curl -X POST -F "file=@docs/测试文档.pdf" http://localhost:8000/ingest
 # 获取流程图 DOT 格式
 curl http://localhost:8000/flow_dot
 
+# 本地直接运行
+python main.py
 
 OPENAI_API_KEY=
 NEO4J_URL=bolt://localhost:7687

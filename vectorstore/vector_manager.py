@@ -1,9 +1,10 @@
+import os
+
+from dotenv import load_dotenv
 from langchain.embeddings import OpenAIEmbeddings
 from langchain.vectorstores import Chroma
-import os
-from dotenv import load_dotenv
-load_dotenv()
 
+load_dotenv()
 
 PERSIST_DIR = os.getenv("CHROMA_PERSIST_DIR", "./chroma_store")
 
